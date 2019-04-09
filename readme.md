@@ -1,6 +1,6 @@
 Clone from repo 
 
-git clone https://github.com/vishu099/team-management-test.git
+git clone https://github.com/vishu099/lumen-backend-test.git
 
 Move to folder directory
 	cd team-management-test
