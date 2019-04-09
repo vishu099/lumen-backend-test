@@ -36,7 +36,7 @@
 	        <td>{{ ++$i }}</td>
 	        <td>{{ $team->name }}</td>
 	        <td>{{ $team->user->name }}</td>
-            <td>{{ $team->users->pluck('name') }}</td>
+            <td>{{ implode(',',$team->users->pluck('name')->toArray()) }}</td>
 	        <td>
                 <form action="{{ route('teams.destroy',$team->id) }}" method="POST">
                     <a class="btn btn-info" href="{{ route('teams.show',$team->id) }}">Show</a>
