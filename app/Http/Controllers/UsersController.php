@@ -8,6 +8,7 @@ use App\User;
 use Spatie\Permission\Models\Role;
 use DB;
 use Hash;
+use Validator;
 
 class UsersController extends Controller
 {
@@ -52,12 +53,24 @@ class UsersController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|same:confirm-password',
-            'roles' => 'required'
-        ]);
+        $validator = Validator::make($request->all(),  [
+                        'name' => 'required',
+                        'email' => 'required|email|unique:users,email',
+                        'password' => 'required|same:confirm-password',
+                        'roles' => 'required'
+                    ]);
+        if($validator->fails())
+        {
+            if ($request->is('api/*'))
+            {
+                return response()->json(['message' => $validator->messages()->all()],422); 
+            } 
+            else 
+            {
+                Former::withErrors($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+        }
 
 
         $input = $request->all();
@@ -68,7 +81,8 @@ class UsersController extends Controller
         $user->assignRole($request->input('roles'));
 
         if ($request->is('api/*')) {
-            return response()->json("User created successfully", 200);
+
+            return response()->json(['message' => "User created successfully"], 200);
         } else {
             return redirect()->route('users.index')
                     ->with('success','User created successfully');
@@ -121,13 +135,24 @@ class UsersController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,'.$id,
-            'password' => 'same:confirm-password',
-            'roles' => 'required'
-        ]);
-
+        $validator = Validator::make($request->all(), [
+                        'name' => 'required',
+                        'email' => 'required|email|unique:users,email,'.$id,
+                        'password' => 'same:confirm-password',
+                        'roles' => 'required'
+                    ]);
+        if($validator->fails())
+        {
+            if ($request->is('api/*'))
+            {
+                return response()->json(['message' => $validator->messages()->all()],422); 
+            } 
+            else 
+            {
+                Former::withErrors($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+        }
 
         $input = $request->all();
         if(!empty($input['password'])){ 
@@ -145,7 +170,7 @@ class UsersController extends Controller
         $user->assignRole($request->input('roles'));
 
         if ($request->is('api/*')) {
-            return response()->json("User updated successfully", 200);
+            return response()->json(['message' => "User updated successfully"], 200);
         } else {
             return redirect()->route('users.index')
                         ->with('success','User updated successfully');
@@ -163,7 +188,7 @@ class UsersController extends Controller
     {
         User::find($id)->delete();
         if ($request->is('api/*')) {
-            return response()->json("User deleted successfully", 200);
+            return response()->json(['message' => "User deleted successfully"], 200);
         } else {
             return redirect()->route('users.index')
                         ->with('success','User deleted successfully');
