@@ -19,8 +19,12 @@ class UsersController extends Controller
     public function index(Request $request)
     {
         $data = User::orderBy('id','DESC')->paginate(5);
-        return view('users.index',compact('data'))
+        if ($request->is('api/*')) {
+            return response()->json($data, 200);
+        } else {
+            return view('users.index',compact('data'))
             ->with('i', ($request->input('page', 1) - 1) * 5);
+        }
     }
 
 
@@ -29,10 +33,14 @@ class UsersController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
         $roles = Role::pluck('name','name')->all();
-        return view('users.create',compact('roles'));
+        if ($request->is('api/*')) {
+            return response()->json($roles, 200);
+        } else {
+            return view('users.create',compact('roles'));
+        }
     }
 
 
@@ -59,9 +67,12 @@ class UsersController extends Controller
         $user = User::create($input);
         $user->assignRole($request->input('roles'));
 
-
-        return redirect()->route('users.index')
-                        ->with('success','User created successfully');
+        if ($request->is('api/*')) {
+            return response()->json("User created successfully", 200);
+        } else {
+            return redirect()->route('users.index')
+                    ->with('success','User created successfully');
+        }
     }
 
 
@@ -71,10 +82,14 @@ class UsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $user = User::find($id);
-        return view('users.show',compact('user'));
+        if ($request->is('api/*')) {
+            return response()->json($user, 200);
+        } else {
+            return view('users.show',compact('user'));
+        }
     }
 
 
@@ -84,14 +99,16 @@ class UsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
         $user = User::find($id);
         $roles = Role::pluck('name','name')->all();
         $userRole = $user->roles->pluck('name','name')->all();
-
-
-        return view('users.edit',compact('user','roles','userRole'));
+        if ($request->is('api/*')) {
+            return response()->json([$user,$roles,$userRole], 200);
+        } else {
+            return view('users.edit',compact('user','roles','userRole'));
+        }
     }
 
 
@@ -127,9 +144,12 @@ class UsersController extends Controller
 
         $user->assignRole($request->input('roles'));
 
-
-        return redirect()->route('users.index')
+        if ($request->is('api/*')) {
+            return response()->json("User updated successfully", 200);
+        } else {
+            return redirect()->route('users.index')
                         ->with('success','User updated successfully');
+        }
     }
 
 
@@ -139,10 +159,14 @@ class UsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         User::find($id)->delete();
-        return redirect()->route('users.index')
+        if ($request->is('api/*')) {
+            return response()->json("User deleted successfully", 200);
+        } else {
+            return redirect()->route('users.index')
                         ->with('success','User deleted successfully');
+        }
     }
 }
