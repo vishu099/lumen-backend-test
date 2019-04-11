@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use DB;
+use Validator;
 
 class RolesController extends Controller
 {
@@ -32,8 +33,13 @@ class RolesController extends Controller
     public function index(Request $request)
     {
         $roles = Role::orderBy('id','DESC')->paginate(5);
-        return view('roles.index',compact('roles'))
+        if ($request->is('api/*')) {
+            return response()->json($roles, 200);
+        } else {
+            return view('roles.index',compact('roles'))
             ->with('i', ($request->input('page', 1) - 1) * 5);
+        }
+        
     }
 
 
@@ -42,10 +48,14 @@ class RolesController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create(Request $request)
     {
         $permission = Permission::get();
-        return view('roles.create',compact('permission'));
+        if ($request->is('api/*')) {
+            return response()->json($permission, 200);
+        } else {
+            return view('roles.create',compact('permission'));
+        }
     }
 
 
@@ -57,18 +67,34 @@ class RolesController extends Controller
      */
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'name' => 'required|unique:roles,name',
-            'permission' => 'required',
-        ]);
+        $validator = Validator::make($request->all(),  [
+                        'name' => 'required|unique:roles,name',
+                        'permission' => 'required',
+                    ]);
+        if($validator->fails())
+        {
+            if ($request->is('api/*'))
+            {
+                return response()->json(['message' => $validator->messages()->all()],422); 
+            } 
+            else 
+            {
+                Former::withErrors($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+        }
 
 
         $role = Role::create(['name' => $request->input('name')]);
         $role->syncPermissions($request->input('permission'));
 
-
-        return redirect()->route('roles.index')
+        if ($request->is('api/*')) {
+            return response()->json(['message' => "Role created successfully"], 200);
+        } else {
+            return redirect()->route('roles.index')
                         ->with('success','Role created successfully');
+        }
+        
     }
     /**
      * Display the specified resource.
@@ -76,15 +102,17 @@ class RolesController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Request $request,$id)
     {
         $role = Role::find($id);
         $rolePermissions = Permission::join("role_has_permissions","role_has_permissions.permission_id","=","permissions.id")
             ->where("role_has_permissions.role_id",$id)
             ->get();
-
-
-        return view('roles.show',compact('role','rolePermissions'));
+        if ($request->is('api/*')) {
+            return response()->json(['roles' => $role,'role_permissions' => $rolePermissions], 200);
+        } else {
+            return view('roles.show',compact('role','rolePermissions'));
+        }
     }
 
 
@@ -94,7 +122,7 @@ class RolesController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(Request $request,$id)
     {
         $role = Role::find($id);
         $permission = Permission::get();
@@ -102,8 +130,13 @@ class RolesController extends Controller
             ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
             ->all();
 
+        if ($request->is('api/*')) {
+            return response()->json(['roles' => $role,'permission' => $permission,'role_permissions' => $rolePermissions], 200);
+        } else {
+            return view('roles.edit',compact('role','permission','rolePermissions'));
+        }
 
-        return view('roles.edit',compact('role','permission','rolePermissions'));
+
     }
 
 
@@ -116,11 +149,22 @@ class RolesController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'name' => 'required',
-            'permission' => 'required',
-        ]);
-
+        $validator = Validator::make($request->all(),  [
+                        'name' => 'required|unique:roles,name',
+                        'permission' => 'required',
+                    ]);
+        if($validator->fails())
+        {
+            if ($request->is('api/*'))
+            {
+                return response()->json(['message' => $validator->messages()->all()],422); 
+            } 
+            else 
+            {
+                Former::withErrors($validator);
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+        }
 
         $role = Role::find($id);
         $role->name = $request->input('name');
@@ -129,9 +173,12 @@ class RolesController extends Controller
 
         $role->syncPermissions($request->input('permission'));
 
-
-        return redirect()->route('roles.index')
+        if ($request->is('api/*')) {
+            return response()->json(['message' => "Role updated successfully"], 200);
+        } else {
+            return redirect()->route('roles.index')
                         ->with('success','Role updated successfully');
+        }
     }
     /**
      * Remove the specified resource from storage.
@@ -139,10 +186,15 @@ class RolesController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Request $request,$id)
     {
         DB::table("roles")->where('id',$id)->delete();
-        return redirect()->route('roles.index')
+
+        if ($request->is('api/*')) {
+            return response()->json(['message' => "Role deleted successfully"], 200);
+        } else {
+            return redirect()->route('roles.index')
                         ->with('success','Role deleted successfully');
+        }
     }
 }
